@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HelioGrid V1 — Interactive Pipeline & Earth Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --border-color: #1f293d;
+      --primary: #f59e0b;
+      --accent: #38bdf8;
+      --success: #10b981;
+    }
+    body {
+      background-color: var(--bg);
+      color: #e2e8f0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    input[type=range] {
+      accent-color: #f59e0b;
+    }
+    .step-active {
+      border-color: #f59e0b;
+      background-color: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+    }
+    .step-completed {
+      border-color: #10b981;
+      color: #34d399;
+    }
+    canvas {
+      image-rendering: auto;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-6 antialiased">
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between pb-4 border-b border-[var(--border-color)] gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">☀️</span>
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              HelioGrid V1 <span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono border border-amber-500/30">ISRO Live Flow</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-0.5">Interactive Earth Globe, Rooftop Solar Sizing & Step-by-Step Pipeline Inspector</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Preset Cities -->
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs text-slate-400 font-medium">Quick Select:</span>
+        <button onclick="selectCity('Delhi', 28.7495, 77.1180, 5.1)" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition">📍 Delhi</button>
+        <button onclick="selectCity('Jaipur', 26.9124, 75.7873, 5.6)" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">📍 Jaipur</button>
+        <button onclick="selectCity('Mumbai', 19.0760, 72.8777, 5.2)" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">📍 Mumbai</button>
+        <button onclick="selectCity('Bengaluru', 12.9716, 77.5946, 5.3)" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">📍 Bengaluru</button>
+        <button onclick="selectCity('Ahmedabad', 23.0225, 72.5714, 5.5)" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">📍 Ahmedabad</button>
+      </div>
+    </header>
+
+    <!-- Main Visualizer Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Column: Interactive 3D Earth Globe & Rooftop Visualizer -->
+      <div class="lg:col-span-5 space-y-4">
+        
+        <!-- Earth Globe Card -->
+        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 relative overflow-hidden shadow-xl">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Interactive 3D Earth (Drag to rotate, click to pin)
+            </span>
+            <span id="globeCoordsBadge" class="text-[11px] font-mono text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/40">28.75° N, 77.12° E</span>
+          </div>
+
+          <div class="relative flex items-center justify-center bg-black/60 rounded-lg p-2 border border-slate-800/80">
+            <canvas id="earthCanvas" width="360" height="300" class="cursor-grab active:cursor-grabbing max-w-full"></canvas>
+            <div class="absolute bottom-3 left-3 text-[10px] text-slate-400 bg-slate-900/80 px-2 py-1 rounded backdrop-blur border border-slate-800">
+              Drag Earth to spin • Click on India to pin
+            </div>
+          </div>
+        </div>
+
+        <!-- Rooftop Satellite Simulator -->
+        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <span>🛰️</span> Step 2 & 3: Zoom 19 Satellite Rooftop
+            </span>
+            <span class="text-[11px] text-emerald-400 font-mono bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/40" id="liveAreaBadge">120 m² Terrace</span>
+          </div>
+
+          <div class="relative bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center p-2">
+            <canvas id="roofCanvas" width="360" height="200" class="rounded max-w-full"></canvas>
+            <div class="absolute bottom-3 right-3 text-[10px] text-amber-300 bg-slate-900/90 px-2 py-1 rounded border border-slate-800 font-mono" id="roofPanelBadge">
+              7 Panels (3.82 kW)
+            </div>
+          </div>
+
+          <!-- Quick interactive sliders -->
+          <div class="space-y-2 pt-1 text-xs">
+            <div class="flex justify-between text-slate-400">
+              <span>Terrace Area (m²):</span>
+              <span id="areaReadout" class="font-mono text-white font-semibold">120 m²</span>
+            </div>
+            <input id="areaSlider" type="range" min="40" max="400" step="5" value="120" class="w-full h-1.5 bg-slate-800 rounded-lg" oninput="updateSliders()">
+
+            <div class="flex justify-between text-slate-400 pt-1">
+              <span>Monthly Bill:</span>
+              <span id="billReadout" class="font-mono text-amber-400 font-semibold">₹3,500 / mo</span>
+            </div>
+            <input id="billSlider" type="range" min="1000" max="15000" step="250" value="3500" class="w-full h-1.5 bg-slate-800 rounded-lg" oninput="updateSliders()">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Step-by-Step Pipeline Inspector -->
+      <div class="lg:col-span-7 space-y-4">
+
+        <!-- Stepper Navigation Bar -->
+        <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap gap-1.5" id="stepPills">
+            <!-- Pills populated dynamically -->
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="prevStep()" id="prevBtn" class="px-3 py-1.5 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 disabled:opacity-40 transition">← Prev</button>
+            <button onclick="nextStep()" id="nextBtn" class="px-3 py-1.5 text-xs rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold transition">Next →</button>
+          </div>
+        </div>
+
+        <!-- Step Detail Card -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4 min-h-[380px]">
+          
+          <div class="flex items-start justify-between border-b border-slate-800 pb-3">
+            <div>
+              <span class="text-[11px] font-mono text-amber-400 font-semibold uppercase tracking-wider" id="stepCategory">STEP 1 OF 7</span>
+              <h2 class="text-lg font-bold text-white mt-0.5" id="stepTitle">Place Name → Coordinates</h2>
+              <p class="text-xs text-slate-400 mt-1" id="stepDesc">User enters address or locality. OpenStreetMap Nominatim geocodes it into exact latitude and longitude.</p>
+            </div>
+            <span class="text-2xl p-2 rounded-lg bg-slate-800 border border-slate-700" id="stepIcon">📍</span>
+          </div>
+
+          <!-- Step Dynamic Content Area -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="stepDynamicGrid">
+            <!-- Left sub-panel: Live Parameters & Output -->
+            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80 space-y-2.5">
+              <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Live Step State & Calculations</span>
+              <div id="stepStateList" class="space-y-1.5 text-xs font-mono">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Right sub-panel: API / Code Inspection -->
+            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Protocol / Python Code</span>
+                <span class="text-[10px] text-amber-400 font-mono" id="stepFileBadge">step1_geocoder.py</span>
+              </div>
+              <pre id="stepCodeBlock" class="text-[11px] font-mono bg-black/60 p-2.5 rounded text-slate-300 overflow-x-auto leading-relaxed border border-slate-900"></pre>
+            </div>
+          </div>
+
+          <!-- Step Summary Callout -->
+          <div class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 flex items-start gap-2.5" id="stepTipBox">
+            <span class="text-amber-400 text-sm">💡</span>
+            <div id="stepTipText">Nominatim requires a custom User-Agent and email in the headers according to OSM usage guidelines.</div>
+          </div>
+        </div>
+
+        <!-- Live Financial Summary Cards (PM Surya Ghar) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">Recommended</span>
+            <div class="text-lg font-bold text-white font-mono mt-0.5" id="cardKw">3.82 kW</div>
+            <span class="text-[11px] text-slate-400" id="cardPanels">7 panels @ 545W</span>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">Govt Subsidy</span>
+            <div class="text-lg font-bold text-emerald-400 font-mono mt-0.5" id="cardSubsidy">₹78,000</div>
+            <span class="text-[11px] text-emerald-500/80">PM Surya Ghar (Max)</span>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">Net Cost</span>
+            <div class="text-lg font-bold text-amber-400 font-mono mt-0.5" id="cardNetCost">₹1,31,825</div>
+            <span class="text-[11px] text-slate-400">After subsidy</span>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">Est. Payback</span>
+            <div class="text-lg font-bold text-sky-400 font-mono mt-0.5" id="cardPayback">3.17 Yrs</div>
+            <span class="text-[11px] text-sky-500/80" id="cardSavings">₹41,543 / yr saved</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      city: "Sector 17, Rohini, New Delhi",
+      lat: 28.74955,
+      lon: 77.11802,
+      ghi: 5.10,
+      area_m2: 120.0,
+      monthly_bill: 3500,
+      tariff: 7.5,
+      currentStep: 1,
+      earthRotY: -1.35, // Centered roughly on India
+      earthRotX: 0.35,
+      isDragging: false,
+      lastMouseX: 0,
+      lastMouseY: 0
+    };
+
+    // Step definitions
+    const steps = [
+      {
+        num: 1,
+        title: "Place Name → Coordinates",
+        category: "STEP 1: GEOLOCATION",
+        icon: "📍",
+        desc: "User enters their city or terrace address. OpenStreetMap Nominatim geocodes it into (lat, lon) coordinates without requiring an API key.",
+        file: "step1_geocoder.py",
+        tip: "Nominatim is free and requires no secret key, but strictly requires User-Agent: HelioGridBasic/1.0 and a contact email.",
+        code: `GET https://nominatim.openstreetmap.org/search?q=Rohini+Sector+17,+New+Delhi&format=jsonv2&limit=1
+User-Agent: HelioGridBasic/1.0 (aryangupta2610@gmail.com)
+
+# Response:
+lat = 28.74955
+lon = 77.11802
+display_name = "Sector 17, Rohini, New Delhi, India"`
+      },
+      {
+        num: 2,
+        title: "Coordinates → Satellite Map Tiles",
+        category: "STEP 2: MAP TILES",
+        icon: "🛰️",
+        desc: "Converts (lat, lon) to standard Zoom 19 slippy map XYZ tile indices to load high-res satellite basemap for roof inspection.",
+        file: "step2_map_tiles.py",
+        tip: "Esri World Imagery provides high-resolution 30-50 cm satellite imagery for clear water tank and shadow inspection.",
+        code: `xtile, ytile = lat_lon_to_tile(lat, lon, zoom=19)
+# At lat=28.74955, lon=77.11802:
+# X = 374455, Y = 218398, Zoom = 19
+
+Tile URL:
+https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/19/218398/374455`
+      },
+      {
+        num: 3,
+        title: "Roof Corners → Area (m²) & Centroid",
+        category: "STEP 3: GEOMETRY",
+        icon: "📐",
+        desc: "User clicks 4 or more corners on the shadow-free terrace. Local browser Turf.js calculates geodesic area in m² and center coordinate.",
+        file: "step3_roof_area.py",
+        tip: "Zero API calls are made here. Geodesic spherical projection calculates exact metric area directly on the user's device.",
+        code: `// Turf.js in browser:
+const polygon = turf.polygon([[
+  [77.11790, 28.74960],
+  [77.11810, 28.74960],
+  [77.11810, 28.74950],
+  [77.11790, 28.74950],
+  [77.11790, 28.74960]
+]]);
+
+area_m2 = turf.area(polygon); // -> 120.0 m²
+centroid = turf.centroid(polygon); // -> [77.11800, 28.74955]`
+      },
+      {
+        num: 4,
+        title: "Browser → Backend Endpoint",
+        category: "STEP 4: FASTAPI PAYLOAD",
+        icon: "📦",
+        desc: "The browser packages the terrace geometry and monthly billing data into a clean JSON payload and posts to FastAPI /api/v1/analyze.",
+        file: "step4_request.py",
+        tip: "Stateless V1 architecture: zero database queries, zero Redis caching. Every click flows directly into mathematical calculation.",
+        code: `POST /api/v1/analyze
+Content-Type: application/json
+
+{
+  "lat": 28.74955,
+  "lon": 77.11800,
+  "area_m2": 120.0,
+  "monthly_bill_inr": 3500,
+  "tariff_inr_per_kwh": 7.5
+}`
+      },
+      {
+        num: 5,
+        title: "Backend → ISRO VEDAS Solar API",
+        category: "STEP 5: SATELLITE INSOLATION",
+        icon: "☀️",
+        desc: "Backend queries ISRO SAC's VEDAS (Kalpana/INSAT-3D) GeoServer WMS GetFeatureInfo to extract daily solar insolation (GHI).",
+        file: "step5_vedas_solar.py",
+        tip: "Optimal tilt angle is computed as round(abs(lat), 1) matching latitude for maximum annual yield.",
+        code: `GET https://vedas.sac.gov.in/vapi/ridam_server3/wms/?SERVICE=WMS&REQUEST=GetFeatureInfo&LAYERS=annual_insolation&BBOX=...&X-API-KEY=<KEY>
+
+# Extracted Parameters:
+ghi_daily = 5.10 kWh/m²/day
+optimal_tilt_deg = 28.7° (Northern Hemisphere latitude rule)`
+      },
+      {
+        num: 6,
+        title: "Solar Sizing & PM Surya Ghar Math",
+        category: "STEP 6: FINANCIAL SIZING",
+        icon: "🧮",
+        desc: "FastAPI runs 10 lines of pure deterministic math: usable terrace, panel count, gross cost, PM Surya Ghar subsidy, and payback period.",
+        file: "step6_solar_sizing.py",
+        tip: "PM Surya Ghar subsidy gives ₹30,000/kW up to 2 kW, ₹18,000 for the 3rd kW, capping at ₹78,000 for >= 3 kW systems.",
+        code: `usable_area = 120 * 0.65 = 78 m²
+max_roof_kw = 78 / 8.0 = 9.75 kW
+annual_usage = (3500 / 7.5) * 12 = 5,600 kWh
+yield_yr = 5.10 * 365 * 0.78 = 1,452 kWh/kW/yr
+target_kw = 5600 / 1452 = 3.86 kW
+
+panel_count = 7 panels (3.82 kW @ 545W)
+gross_cost = 3.815 * ₹55,000 = ₹2,09,825
+subsidy = ₹78,000 (PM Surya Ghar max)
+net_cost = ₹1,31,825
+payback = ₹1,31,825 / ₹41,543 = 3.17 years`
+      },
+      {
+        num: 7,
+        title: "Backend → Frontend Response (JSON Cards)",
+        category: "STEP 7: RESULT CARDS",
+        icon: "🎉",
+        desc: "FastAPI responds with HTTP 200 OK JSON containing complete sizing, energy, and financial metrics to render the final report cards.",
+        file: "step7_response.py",
+        tip: "The homeowner sees immediate clarity: rooftop capacity, subsidy savings, and investment payback.",
+        code: `HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "sizing": {
+    "drawn_area_m2": 120.0,
+    "usable_area_m2": 78.0,
+    "panel_count": 7,
+    "installed_kw": 3.82,
+    "optimal_tilt_deg": 28.7
+  },
+  "energy": {
+    "ghi_kwh_m2_day": 5.10,
+    "annual_generation_kwh": 5539
+  },
+  "financials": {
+    "gross_cost_inr": 209825,
+    "pm_surya_ghar_subsidy_inr": 78000,
+    "net_cost_inr": 131825,
+    "payback_years": 3.17
+  }
+}`
+      }
+    ];
+
+    // Initialize Stepper UI
+    function renderStepPills() {
+      const container = document.getElementById("stepPills");
+      container.innerHTML = "";
+      steps.forEach(s => {
+        const btn = document.createElement("button");
+        btn.className = `px-2.5 py-1 text-xs rounded font-medium border transition flex items-center gap-1.5 ${
+          s.num === state.currentStep
+            ? "step-active"
+            : s.num < state.currentStep
+            ? "step-completed bg-slate-800 border-emerald-900/50"
+            : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white"
+        }`;
+        btn.innerHTML = `<span>${s.num}</span> <span>${s.title.split("→")[0].trim()}</span>`;
+        btn.onclick = () => setStep(s.num);
+        container.appendChild(btn);
+      });
+    }
+
+    function setStep(num) {
+      state.currentStep = Math.max(1, Math.min(steps.length, num));
+      renderStepPills();
+      updateStepCard();
+      document.getElementById("prevBtn").disabled = state.currentStep === 1;
+      document.getElementById("nextBtn").disabled = state.currentStep === steps.length;
+    }
+
+    function nextStep() { setStep(state.currentStep + 1); }
+    function prevStep() { setStep(state.currentStep - 1); }
+
+    function updateStepCard() {
+      const step = steps[state.currentStep - 1];
+      document.getElementById("stepCategory").textContent = step.category;
+      document.getElementById("stepTitle").textContent = step.title;
+      document.getElementById("stepDesc").textContent = step.desc;
+      document.getElementById("stepIcon").textContent = step.icon;
+      document.getElementById("stepFileBadge").textContent = step.file;
+      document.getElementById("stepCodeBlock").textContent = step.code;
+      document.getElementById("stepTipText").textContent = step.tip;
+
+      // Populate live state breakdown
+      const stateList = document.getElementById("stepStateList");
+      const calc = runCalculations();
+      
+      let html = "";
+      if (state.currentStep === 1) {
+        html = `
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Address Query:</span><span class="text-white">${state.city}</span></div>
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Latitude:</span><span class="text-amber-400 font-bold">${state.lat.toFixed(5)}° N</span></div>
+          <div class="flex justify-between py-1 text-slate-300"><span>Longitude:</span><span class="text-amber-400 font-bold">${state.lon.toFixed(5)}° E</span></div>
+        `;
+      } else if (state.currentStep === 2) {
+        html = `
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Zoom Level:</span><span class="text-white">19 (Roof View)</span></div>
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Tile X Index:</span><span class="text-emerald-400 font-bold">374455</span></div>
+          <div class="flex justify-between py-1 text-slate-300"><span>Tile Y Index:</span><span class="text-emerald-400 font-bold">218398</span></div>
+        `;
+      } else if (state.currentStep === 3) {
+        html = `
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Drawn Area:</span><span class="text-white font-bold">${state.area_m2} m²</span></div>
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Usable (65%):</span><span class="text-amber-400 font-bold">${calc.usable_area} m²</span></div>
+          <div class="flex justify-between py-1 text-slate-300"><span>Centroid:</span><span class="text-sky-400">[${state.lon.toFixed(4)}, ${state.lat.toFixed(4)}]</span></div>
+        `;
+      } else if (state.currentStep === 4) {
+        html = `
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>HTTP Method:</span><span class="text-emerald-400 font-bold">POST</span></div>
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Endpoint:</span><span class="text-white">/api/v1/analyze</span></div>
+          <div class="flex justify-between py-1 text-slate-300"><span>Monthly Bill:</span><span class="text-amber-400">₹${state.monthly_bill.toLocaleString()}</span></div>
+        `;
+      } else if (state.currentStep === 5) {
+        html = `
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Daily GHI:</span><span class="text-amber-400 font-bold">${state.ghi.toFixed(2)} kWh/m²/day</span></div>
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Optimal Tilt:</span><span class="text-sky-400 font-bold">${calc.optimal_tilt}°</span></div>
+          <div class="flex justify-between py-1 text-slate-300"><span>Satellite Source:</span><span class="text-emerald-400">ISRO SAC VEDAS</span></div>
+        `;
+      } else if (state.currentStep === 6 || state.currentStep === 7) {
+        html = `
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>System Capacity:</span><span class="text-amber-400 font-bold">${calc.installed_kw} kW (${calc.panel_count} panels)</span></div>
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Annual Generation:</span><span class="text-emerald-400">${calc.annual_generation.toLocaleString()} kWh/yr</span></div>
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Gross Cost:</span><span class="text-white">₹${calc.gross_cost.toLocaleString()}</span></div>
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>PM Surya Ghar Subsidy:</span><span class="text-emerald-400 font-bold">-₹${calc.subsidy.toLocaleString()}</span></div>
+          <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300"><span>Net Cost:</span><span class="text-amber-400 font-bold">₹${calc.net_cost.toLocaleString()}</span></div>
+          <div class="flex justify-between py-1 text-slate-300"><span>Payback Period:</span><span class="text-sky-400 font-bold">${calc.payback_years} Years</span></div>
+        `;
+      }
+      stateList.innerHTML = html;
+    }
+
+    // Mathematical Engine (Exact match with Step 6 of design doc)
+    function runCalculations() {
+      const usable_area = Math.round(state.area_m2 * 0.65 * 10) / 10;
+      const max_roof_kw = Math.round((usable_area / 8.0) * 100) / 100;
+      const annual_usage = Math.round((state.monthly_bill / state.tariff) * 12);
+      const yield_yr = Math.round(state.ghi * 365.0 * 0.78);
+      const target_kw = Math.round((annual_usage / yield_yr) * 100) / 100;
+
+      const optimal_kw = Math.min(max_roof_kw, target_kw);
+      const panel_count = Math.max(1, Math.round(optimal_kw / 0.545));
+      const exact_installed_kw = panel_count * 0.545;
+      const installed_kw = Math.round(exact_installed_kw * 100) / 100;
+
+      const annual_generation = Math.round(exact_installed_kw * yield_yr);
+      const gross_cost = Math.round(exact_installed_kw * 55000);
+
+      // PM Surya Ghar subsidy
+      let subsidy = 0;
+      if (exact_installed_kw >= 3.0) {
+        subsidy = 78000;
+      } else if (exact_installed_kw <= 2.0) {
+        subsidy = Math.round(exact_installed_kw * 30000);
+      } else {
+        subsidy = Math.round(60000 + (exact_installed_kw - 2.0) * 18000);
+      }
+
+      const net_cost = gross_cost - subsidy;
+      const annual_savings = Math.round(annual_generation * state.tariff);
+      const payback_years = annual_savings > 0 ? (net_cost / annual_savings).toFixed(2) : "0.00";
+      const optimal_tilt = Math.round(Math.abs(state.lat) * 10) / 10;
+
+      return {
+        usable_area,
+        max_roof_kw,
+        annual_usage,
+        yield_yr,
+        target_kw,
+        panel_count,
+        installed_kw,
+        annual_generation,
+        gross_cost,
+        subsidy,
+        net_cost,
+        annual_savings,
+        payback_years,
+        optimal_tilt
+      };
+    }
+
+    function updateSliders() {
+      state.area_m2 = parseFloat(document.getElementById("areaSlider").value);
+      state.monthly_bill = parseFloat(document.getElementById("billSlider").value);
+
+      document.getElementById("areaReadout").textContent = `${state.area_m2} m²`;
+      document.getElementById("billReadout").textContent = `₹${state.monthly_bill.toLocaleString()} / mo`;
+      document.getElementById("liveAreaBadge").textContent = `${state.area_m2} m² Terrace`;
+
+      const calc = runCalculations();
+      document.getElementById("cardKw").textContent = `${calc.installed_kw} kW`;
+      document.getElementById("cardPanels").textContent = `${calc.panel_count} panels @ 545W`;
+      document.getElementById("cardSubsidy").textContent = `₹${calc.subsidy.toLocaleString()}`;
+      document.getElementById("cardNetCost").textContent = `₹${calc.net_cost.toLocaleString()}`;
+      document.getElementById("cardPayback").textContent = `${calc.payback_years} Yrs`;
+      document.getElementById("cardSavings").textContent = `₹${calc.annual_savings.toLocaleString()} / yr saved`;
+      document.getElementById("roofPanelBadge").textContent = `${calc.panel_count} Panels (${calc.installed_kw} kW)`;
+
+      updateStepCard();
+      drawRoofCanvas();
+    }
+
+    function selectCity(name, lat, lon, ghi) {
+      state.city = name;
+      state.lat = lat;
+      state.lon = lon;
+      state.ghi = ghi;
+
+      // Animate rotation to city
+      state.earthRotY = -(lon * Math.PI / 180);
+      state.earthRotX = (lat * Math.PI / 180) * 0.6;
+
+      document.getElementById("globeCoordsBadge").textContent = `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E (${name})`;
+      updateSliders();
+      drawEarth();
+    }
+
+    // -------------------------------------------------------------
+    // Interactive 3D Canvas Earth Globe (Pure HTML5 Canvas)
+    // -------------------------------------------------------------
+    const earthCanvas = document.getElementById("earthCanvas");
+    const eCtx = earthCanvas.getContext("2d");
+
+    // Simplified continent polygonal outlines (India, Asia, Europe, Africa, Americas)
+    const continents = [
+      // India sub-continent
+      [[68, 24], [72, 31], [77, 35], [80, 31], [88, 27], [92, 26], [88, 21], [82, 17], [80, 13], [77, 8], [75, 12], [73, 16], [72, 21], [68, 24]],
+      // Asia general
+      [[60, 35], [75, 55], [100, 60], [130, 65], [140, 50], [125, 30], [105, 20], [80, 31], [60, 35]],
+      // Africa
+      [[-17, 15], [-5, 35], [10, 37], [30, 31], [50, 12], [40, -10], [30, -32], [20, -34], [10, -5], [-10, 5], [-17, 15]],
+      // Europe
+      [[-9, 38], [0, 48], [15, 55], [30, 60], [40, 45], [25, 38], [10, 36], [-5, 36], [-9, 38]],
+      // Australia
+      [[115, -22], [130, -14], [145, -18], [150, -35], [135, -38], [118, -35], [115, -22]]
+    ];
+
+    function drawEarth() {
+      const w = earthCanvas.width;
+      const h = earthCanvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const r = 115;
+
+      eCtx.clearRect(0, 0, w, h);
+
+      // Deep Space background with subtle stars
+      eCtx.fillStyle = "#030712";
+      eCtx.fillRect(0, 0, w, h);
+
+      // Draw faint stars
+      eCtx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      for (let i = 0; i < 25; i++) {
+        const sx = (i * 73 + 19) % w;
+        const sy = (i * 47 + 31) % h;
+        eCtx.fillRect(sx, sy, 1.2, 1.2);
+      }
+
+      // Outer Atmosphere Glow
+      const glowGrad = eCtx.createRadialGradient(cx, cy, r * 0.95, cx, cy, r * 1.22);
+      glowGrad.addColorStop(0, "rgba(56, 189, 248, 0.35)");
+      glowGrad.addColorStop(0.5, "rgba(56, 189, 248, 0.12)");
+      glowGrad.addColorStop(1, "rgba(56, 189, 248, 0)");
+      eCtx.fillStyle = glowGrad;
+      eCtx.beginPath();
+      eCtx.arc(cx, cy, r * 1.22, 0, Math.PI * 2);
+      eCtx.fill();
+
+      // Earth Globe Sphere (Ocean Base)
+      const oceanGrad = eCtx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
+      oceanGrad.addColorStop(0, "#1e3a8a");
+      oceanGrad.addColorStop(0.65, "#0f172a");
+      oceanGrad.addColorStop(1, "#020617");
+      eCtx.fillStyle = oceanGrad;
+      eCtx.beginPath();
+      eCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      eCtx.fill();
+
+      // Clip to sphere for globe surface
+      eCtx.save();
+      eCtx.beginPath();
+      eCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      eCtx.clip();
+
+      // 3D Sphere Projection helper
+      function project(lonDeg, latDeg) {
+        const lon = lonDeg * Math.PI / 180 + state.earthRotY;
+        const lat = latDeg * Math.PI / 180;
+
+        // 3D Cartesian on unit sphere
+        const x3 = Math.cos(lat) * Math.sin(lon);
+        const y3 = Math.sin(lat);
+        const z3 = Math.cos(lat) * Math.cos(lon);
+
+        // Rotate around X axis
+        const cosX = Math.cos(state.earthRotX);
+        const sinX = Math.sin(state.earthRotX);
+        const rotY = y3 * cosX - z3 * sinX;
+        const rotZ = y3 * sinX + z3 * cosX;
+
+        return {
+          x: cx + x3 * r,
+          y: cy - rotY * r,
+          visible: rotZ > 0.05
+        };
+      }
+
+      // Draw Latitude & Longitude Grids
+      eCtx.strokeStyle = "rgba(56, 189, 248, 0.15)";
+      eCtx.lineWidth = 0.8;
+      for (let lat = -60; lat <= 60; lat += 30) {
+        eCtx.beginPath();
+        let first = true;
+        for (let lon = -180; lon <= 180; lon += 10) {
+          const pt = project(lon, lat);
+          if (pt.visible) {
+            if (first) { eCtx.moveTo(pt.x, pt.y); first = false; }
+            else { eCtx.lineTo(pt.x, pt.y); }
+          } else {
+            first = true;
+          }
+        }
+        eCtx.stroke();
+      }
+
+      // Draw Continents
+      eCtx.fillStyle = "rgba(34, 197, 94, 0.45)";
+      eCtx.strokeStyle = "rgba(34, 197, 94, 0.75)";
+      eCtx.lineWidth = 1.2;
+
+      continents.forEach(poly => {
+        eCtx.beginPath();
+        let started = false;
+        poly.forEach(([lon, lat]) => {
+          const pt = project(lon, lat);
+          if (pt.visible) {
+            if (!started) { eCtx.moveTo(pt.x, pt.y); started = true; }
+            else { eCtx.lineTo(pt.x, pt.y); }
+          }
+        });
+        if (started) {
+          eCtx.closePath();
+          eCtx.fill();
+          eCtx.stroke();
+        }
+      });
+
+      // Highlight India with golden hue
+      eCtx.fillStyle = "rgba(245, 158, 11, 0.45)";
+      eCtx.strokeStyle = "#f59e0b";
+      eCtx.lineWidth = 1.5;
+      eCtx.beginPath();
+      let indiaStarted = false;
+      continents[0].forEach(([lon, lat]) => {
+        const pt = project(lon, lat);
+        if (pt.visible) {
+          if (!indiaStarted) { eCtx.moveTo(pt.x, pt.y); indiaStarted = true; }
+          else { eCtx.lineTo(pt.x, pt.y); }
+        }
+      });
+      if (indiaStarted) {
+        eCtx.closePath();
+        eCtx.fill();
+        eCtx.stroke();
+      }
+
+      // Draw Pin at selected location
+      const pin = project(state.lon, state.lat);
+      if (pin.visible) {
+        // Pulse ring
+        eCtx.strokeStyle = "rgba(245, 158, 11, 0.8)";
+        eCtx.lineWidth = 2;
+        eCtx.beginPath();
+        eCtx.arc(pin.x, pin.y, 8, 0, Math.PI * 2);
+        eCtx.stroke();
+
+        // Pin center
+        eCtx.fillStyle = "#ef4444";
+        eCtx.beginPath();
+        eCtx.arc(pin.x, pin.y, 4, 0, Math.PI * 2);
+        eCtx.fill();
+
+        // Label
+        eCtx.fillStyle = "#ffffff";
+        eCtx.font = "bold 11px sans-serif";
+        eCtx.fillText(state.city.split(",")[0], pin.x + 10, pin.y + 4);
+      }
+
+      eCtx.restore();
+
+      // Atmospheric limb highlight
+      eCtx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+      eCtx.lineWidth = 1.5;
+      eCtx.beginPath();
+      eCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      eCtx.stroke();
+    }
+
+    // Globe Drag Interaction
+    earthCanvas.addEventListener("mousedown", (e) => {
+      state.isDragging = true;
+      state.lastMouseX = e.clientX;
+      state.lastMouseY = e.clientY;
+    });
+    window.addEventListener("mouseup", () => { state.isDragging = false; });
+    window.addEventListener("mousemove", (e) => {
+      if (!state.isDragging) return;
+      const dx = e.clientX - state.lastMouseX;
+      const dy = e.clientY - state.lastMouseY;
+      state.earthRotY += dx * 0.01;
+      state.earthRotX = Math.max(-0.8, Math.min(0.8, state.earthRotX + dy * 0.01));
+      state.lastMouseX = e.clientX;
+      state.lastMouseY = e.clientY;
+      drawEarth();
+    });
+
+    // -------------------------------------------------------------
+    // Satellite Rooftop Simulator Canvas
+    // -------------------------------------------------------------
+    const roofCanvas = document.getElementById("roofCanvas");
+    const rCtx = roofCanvas.getContext("2d");
+
+    function drawRoofCanvas() {
+      const w = roofCanvas.width;
+      const h = roofCanvas.height;
+
+      rCtx.clearRect(0, 0, w, h);
+
+      // Satellite Imagery Background (textured concrete rooftop)
+      const bgGrad = rCtx.createLinearGradient(0, 0, w, h);
+      bgGrad.addColorStop(0, "#1e293b");
+      bgGrad.addColorStop(1, "#0f172a");
+      rCtx.fillStyle = bgGrad;
+      rCtx.fillRect(0, 0, w, h);
+
+      // Grid lines (satellite pixel / meter simulation)
+      rCtx.strokeStyle = "rgba(255, 255, 255, 0.06)";
+      rCtx.lineWidth = 1;
+      for (let x = 0; x < w; x += 25) {
+        rCtx.beginPath(); rCtx.moveTo(x, 0); rCtx.lineTo(x, h); rCtx.stroke();
+      }
+      for (let y = 0; y < h; y += 25) {
+        rCtx.beginPath(); rCtx.moveTo(0, y); rCtx.lineTo(w, y); rCtx.stroke();
+      }
+
+      // Calculate terrace boundary scaled to areaSlider
+      const scale = Math.sqrt(state.area_m2 / 120.0);
+      const rx = 45;
+      const ry = 30;
+      const rw = Math.min(w - 90, 270 * scale);
+      const rh = Math.min(h - 60, 130 * scale);
+
+      // Usable terrace polygon (with shadow margin)
+      rCtx.fillStyle = "rgba(245, 158, 11, 0.12)";
+      rCtx.strokeStyle = "#f59e0b";
+      rCtx.lineWidth = 2;
+      rCtx.setLineDash([4, 4]);
+      rCtx.strokeRect(rx, ry, rw, rh);
+      rCtx.fillRect(rx, ry, rw, rh);
+      rCtx.setLineDash([]);
+
+      // Draw 4 corner handles
+      rCtx.fillStyle = "#fbbf24";
+      [[rx, ry], [rx + rw, ry], [rx + rw, ry + rh], [rx, ry + rh]].forEach(([px, py]) => {
+        rCtx.beginPath();
+        rCtx.arc(px, py, 4.5, 0, Math.PI * 2);
+        rCtx.fill();
+        rCtx.strokeStyle = "#ffffff";
+        rCtx.lineWidth = 1;
+        rCtx.stroke();
+      });
+
+      // Draw Solar Panels grid inside terrace
+      const calc = runCalculations();
+      const count = calc.panel_count;
+      const pw = 28;
+      const ph = 18;
+      const gap = 4;
+
+      let drawn = 0;
+      const startX = rx + 12;
+      const startY = ry + 12;
+      const cols = Math.floor((rw - 24) / (pw + gap));
+
+      for (let i = 0; i < count; i++) {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const px = startX + col * (pw + gap);
+        const py = startY + row * (ph + gap);
+
+        if (px + pw <= rx + rw - 8 && py + ph <= ry + rh - 8) {
+          // Panel body (Monocrystalline Dark Blue)
+          rCtx.fillStyle = "#1e3a8a";
+          rCtx.strokeStyle = "#38bdf8";
+          rCtx.lineWidth = 1;
+          rCtx.fillRect(px, py, pw, ph);
+          rCtx.strokeRect(px, py, pw, ph);
+
+          // Panel busbars
+          rCtx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+          rCtx.beginPath();
+          rCtx.moveTo(px + pw / 2, py);
+          rCtx.lineTo(px + pw / 2, py + ph);
+          rCtx.stroke();
+
+          drawn++;
+        }
+      }
+
+      // Compass Rose
+      rCtx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      rCtx.font = "10px monospace";
+      rCtx.fillText("N ↑", w - 28, 22);
+      rCtx.fillText("Due South 180° ↓", rx + 10, ry + rh - 8);
+    }
+
+    // Initial setup
+    renderStepPills();
+    updateStepCard();
+    drawEarth();
+    drawRoofCanvas();
+  </script>
+</body>
+</html>
