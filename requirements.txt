@@ -1,0 +1,20 @@
+# HelioGrid V1 — Rooftop Solar Capacity & Generation Engine
+# ==============================================================================
+# The core HelioGrid engine (step1 to step7, pipeline.py, verify_benchmark.py,
+# and server.py) is intentionally built with ZERO external dependencies, running
+# out-of-the-box on Python 3.10+ standard library.
+#
+# Optional dependencies for extended production deployment, FastAPI endpoints,
+# and developer toolchains:
+# ==============================================================================
+
+# HTTP client library (alternative to urllib.request)
+requests>=2.31.0
+
+# Optional ASGI Production Web Framework & Server
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+
+# Optional Data Validation & Settings Management
+pydantic>=2.6.0
+python-dotenv>=1.0.0
