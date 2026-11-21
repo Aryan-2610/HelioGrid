@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: heliogrid
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: VEDAS_API_KEY
+        value: iPuxIWwm4ihFseL1O2G3_g
+      - key: NOMINATIM_EMAIL
+        value: aryangupta2610@gmail.com
+      - key: NOMINATIM_USER_AGENT
+        value: HelioGridBasic/1.0
+      - key: ENABLE_VEDAS_FALLBACK
+        value: "true"
+      - key: FALLBACK_GHI
+        value: "5.10"
